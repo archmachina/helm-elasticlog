@@ -1,0 +1,10 @@
+---
+
+resources:
+  - service.yaml
+  - deployment.yaml
+  - ingress.yaml
+
+secretGenerator:
+  - name: kibana-cert
+    type: kubernetes.io/tls

@@ -1,0 +1,122 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elastic-ss
+  labels:
+    component: elastic
+spec:
+  serviceName: "elastic-svc"
+  replicas: 1
+  selector:
+    matchLabels:
+      component: elastic
+  template:
+    metadata:
+      labels:
+        component: elastic
+    spec:
+      volumes:
+        - name: elastic-cert
+          secret:
+            secretName: elastic-cert
+        - name: elastic-users
+          emptyDir: {}
+        - name: elastic-usersetup
+          configMap:
+            name: elastic-usersetup
+      initContainers:
+        - name: user-setup
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.5.3-amd64
+          command: ["sh", "-c", ". /usersetup.sh"]
+          volumeMounts:
+            - name: elastic-users
+              mountPath: /usr/share/elasticsearch/config
+            - name: elastic-usersetup
+              subPath: usersetup.sh
+              mountPath: /usersetup.sh
+          env:
+            - name: LOCALADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_username
+            - name: LOCALADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_password
+      containers:
+        - name: elastic
+          image: docker.elastic.co/elasticsearch/elasticsearch:8.5.3-amd64
+          env:
+            - name: cluster.name
+              value: "elastic"
+            - name: cluster.initial_master_nodes
+              value: "elastic-ss-0,elastic-ss-1,elastic-ss-2"
+            - name: discovery.seed_hosts
+              value: |
+                elastic-ss-0.elastic-svc,elastic-ss-1.elastic-svc,elastic-ss-2.elastic-svc
+            - name: transport.port
+              value: "9300"
+            - name: transport.host
+              value: "0.0.0.0"
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: elastic_password
+            - name: xpack.security.enabled
+              value: "true"
+            - name: xpack.security.transport.ssl.enabled
+              value: "true"
+            - name: xpack.security.transport.ssl.verification_mode
+              value: "certificate"
+            - name: xpack.security.transport.ssl.key
+              value: /usr/share/elasticsearch/config/certs/tls.key
+            - name: xpack.security.transport.ssl.certificate
+              value: /usr/share/elasticsearch/config/certs/tls.crt
+            - name: xpack.security.transport.ssl.certificate_authorities
+              value: /usr/share/elasticsearch/config/certs/ca.crt
+            - name: xpack.security.http.ssl.enabled
+              value: "true"
+            - name: xpack.security.http.ssl.key
+              value: /usr/share/elasticsearch/config/certs/tls.key
+            - name: xpack.security.http.ssl.certificate
+              value: /usr/share/elasticsearch/config/certs/tls.crt
+            - name: xpack.security.http.ssl.certificate_authorities
+              value: /usr/share/elasticsearch/config/certs/ca.crt
+            - name: xpack.security.http.ssl.client_authentication
+              value: optional
+            - name: ES_JAVA_OPTS
+              value: "-Xms1g -Xmx1g"
+          ports:
+            - containerPort: 9200
+          volumeMounts:
+            - name: elastic-pvc
+              mountPath: /usr/share/elasticsearch/data
+            - name: elastic-cert
+              mountPath: /usr/share/elasticsearch/config/certs
+              readOnly: true
+            - name: elastic-users
+              mountPath: /usr/share/elasticsearch/config/users
+              readOnly: true
+              subPath: users
+            - name: elastic-users
+              mountPath: /usr/share/elasticsearch/config/users_roles
+              readOnly: true
+              subPath: users_roles
+  volumeClaimTemplates:
+    - metadata:
+        name: elastic-pvc
+        labels:
+          component: elastic
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: "local"
+        resources:
+          requests:
+            storage: 10Gi
+        selector:
+          matchLabels:
+            component: elastic

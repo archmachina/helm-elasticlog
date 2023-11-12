@@ -1,0 +1,22 @@
+name: pr
+on:
+  push:
+    branches-ignore:
+      - "*"
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  pr:
+    name: "pr"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: kustomize
+        run: kustomize build .

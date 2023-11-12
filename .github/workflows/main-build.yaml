@@ -1,0 +1,28 @@
+---
+
+name: main-build
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: "build"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: build
+        shell: bash
+        run: |
+          ./entrypoint build push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_HUB_TOKEN }}
+          TAG_VERSIONS: "main latest"

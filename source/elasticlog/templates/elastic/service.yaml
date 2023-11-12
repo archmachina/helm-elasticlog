@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elastic-svc
+  labels:
+    component: elastic
+spec:
+  selector:
+    component: elastic
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 9200
+      targetPort: 9200

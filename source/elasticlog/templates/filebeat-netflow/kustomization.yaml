@@ -1,0 +1,14 @@
+---
+
+resources:
+  - daemonset.yaml
+
+secretGenerator:
+  - name: filebeat-netflow-cert
+    type: Opaque
+
+configMapGenerator:
+  - name: filebeat-netflow-config
+    files:
+      - filebeat.yml=config/filebeat-netflow.yaml
+      - ilm-policy.json=config/ilm-policy.json

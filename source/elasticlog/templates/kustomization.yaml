@@ -1,0 +1,23 @@
+---
+resources:
+  - ./elastic
+  - ./kibana
+  - ./filebeat-syslog
+  - ./filebeat-netflow
+  - ./beatload
+  - ./logstash
+  - ./ingress
+
+configMapGenerator:
+  - name: elasticlog-config
+    literals:
+      - elastic_replicas=1
+      - logstash_replicas=1
+      - elastic_java_opts=-Xms2g -Xmx2g
+      - logstash_java_opts=-Xms2g -Xmx2g
+      - elastic_fqdn=elastic.local
+      - kibana_fqdn=kibana.local
+      - elastic_storage_class=local
+      - kibana_publicbaseurl=https://kibana.local:5601
+      - elastic_initial_master_nodes=elastic-ss-0
+      - elastic_seed_hosts=elastic-ss-0.elastic-svc

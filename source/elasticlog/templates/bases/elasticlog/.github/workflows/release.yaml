@@ -1,0 +1,20 @@
+---
+name: release
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    name: "release"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: kustomize
+        run: kustomize build .

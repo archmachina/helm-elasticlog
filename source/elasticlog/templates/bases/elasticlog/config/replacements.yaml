@@ -1,0 +1,134 @@
+---
+apiVersion: builtin
+kind: ReplacementTransformer
+metadata:
+  name: replacements
+replacements:
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.elastic_replicas
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: StatefulSet
+          name: elastic-ss
+        fieldPaths:
+          - spec.replicas
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.logstash_replicas
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: Deployment
+          name: logstash-dp
+        fieldPaths:
+          - spec.replicas
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.elastic_java_opts
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: StatefulSet
+          name: elastic-ss
+        fieldPaths:
+          - spec.template.spec.containers.[name=elastic].env.[name=ES_JAVA_OPTS].value
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.logstash_java_opts
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: Deployment
+          name: logstash-dp
+        fieldPaths:
+          - spec.template.spec.containers.[name=logstash].env.[name=ES_JAVA_OPTS].value
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.elastic_fqdn
+    targets:
+      - select:
+          group: networking.k8s.io
+          version: v1
+          kind: Ingress
+          name: elastic-ingress
+        fieldPaths:
+          - spec.rules.0.host
+          - spec.tls.0.hosts.0
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.kibana_fqdn
+    targets:
+      - select:
+          group: networking.k8s.io
+          version: v1
+          kind: Ingress
+          name: kibana-ingress
+        fieldPaths:
+          - spec.rules.0.host
+          - spec.tls.0.hosts.0
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.elastic_storage_class
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: StatefulSet
+          name: elastic-ss
+        fieldPaths:
+          - spec.volumeClaimTemplates.0.spec.storageClassName
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.kibana_publicbaseurl
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: Deployment
+          name: kibana-dp
+        fieldPaths:
+          - spec.template.spec.containers.[name=kibana].env.[name=SERVER_PUBLICBASEURL].value
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.elastic_initial_master_nodes
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: StatefulSet
+          name: elastic-ss
+        fieldPaths:
+          - spec.template.spec.containers.[name=elastic].env.[name=cluster.initial_master_nodes].value
+        options:
+          create: true
+  - source:
+      kind: ConfigMap
+      name: elasticlog-config
+      fieldPath: data.elastic_seed_hosts
+    targets:
+      - select:
+          group: apps
+          version: v1
+          kind: StatefulSet
+          name: elastic-ss
+        fieldPaths:
+          - spec.template.spec.containers.[name=elastic].env.[name=discovery.seed_hosts].value
+        options:
+          create: true

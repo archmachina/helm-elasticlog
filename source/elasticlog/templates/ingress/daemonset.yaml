@@ -1,0 +1,42 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ingress-ds
+  labels:
+    component: ingress
+spec:
+  selector:
+    matchLabels:
+      component: ingress
+  template:
+    metadata:
+      labels:
+        component: ingress
+    spec:
+      volumes:
+        - name: ingress-config
+          configMap:
+            name: ingress-config
+      containers:
+        - name: ingress
+          image: docker.io/library/haproxy:2.7.1
+          env:
+            - name: LOGSTASH_HOST
+              value: "logstash-svc"
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CLUSTER_DOMAIN
+              value: "svc.cluster.local"
+          volumeMounts:
+            - name: ingress-config
+              mountPath: "/usr/local/etc/haproxy/"
+          ports:
+            - containerPort: 9200
+              hostPort: 9200
+            - containerPort: 5044
+              hostPort: 5044

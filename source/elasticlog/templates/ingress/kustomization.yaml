@@ -1,0 +1,16 @@
+---
+resources:
+  - daemonset.yaml
+
+commonLabels:
+  app: ingress
+namespace: ingress
+
+generatorOptions:
+  labels:
+    app: ingress
+
+configMapGenerator:
+  - name: ingress-config
+    files:
+      - haproxy.cfg=config/ingress.cfg

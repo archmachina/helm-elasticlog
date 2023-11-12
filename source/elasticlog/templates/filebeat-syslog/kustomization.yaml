@@ -1,0 +1,14 @@
+---
+
+resources:
+  - daemonset.yaml
+
+secretGenerator:
+  - name: filebeat-syslog-cert
+    type: Opaque
+
+configMapGenerator:
+  - name: filebeat-syslog-config
+    files:
+      - filebeat.yml=config/filebeat-syslog.yml
+      - ilm-policy.json=config/ilm-policy.json

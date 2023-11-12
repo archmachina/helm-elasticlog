@@ -1,0 +1,16 @@
+---
+
+resources:
+  - service.yaml
+  - deployment.yaml
+
+configMapGenerator:
+  - name: logstash-pipeline-config
+    files:
+      - config/0001_input_beats.conf
+      - config/0102_filter.conf
+      - config/0201_output_beats.conf
+
+secretGenerator:
+  - name: logstash-cert
+    type: Opaque

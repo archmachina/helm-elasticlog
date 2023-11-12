@@ -1,0 +1,43 @@
+---
+kind: Component
+
+patches:
+  - patch: |-
+      ---
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: beatload-dp
+      spec:
+        template:
+          spec:
+            volumes:
+              - name: beatload-ca-cert
+                secret:
+                  secretName: beatload-ca-cert
+            initContainers:
+              - name: wait
+              - name: filebeat-load
+                volumeMounts:
+                  - name: beatload-ca-cert
+                    mountPath: /usr/share/filebeat/certs
+              - name: filebeat-load-dashboard
+                volumeMounts:
+                  - name: beatload-ca-cert
+                    mountPath: /usr/share/filebeat/certs
+              - name: metricbeat-load
+                volumeMounts:
+                  - name: beatload-ca-cert
+                    mountPath: /usr/share/metricbeat/certs
+              - name: metricbeat-load-dashboard
+                volumeMounts:
+                  - name: beatload-ca-cert
+                    mountPath: /usr/share/metricbeat/certs
+              - name: auditbeat-load
+                volumeMounts:
+                  - name: beatload-ca-cert
+                    mountPath: /usr/share/auditbeat/certs
+              - name: auditbeat-load-dashboard
+                volumeMounts:
+                  - name: beatload-ca-cert
+                    mountPath: /usr/share/auditbeat/certs

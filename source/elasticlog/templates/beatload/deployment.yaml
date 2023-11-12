@@ -1,0 +1,320 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beatload-dp
+  labels:
+    component: beatload
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: beatload
+  template:
+    metadata:
+      labels:
+        component: beatload
+    spec:
+      volumes:
+        - name: beatload-config
+          configMap:
+            name: beatload-config
+      initContainers:
+        - name: wait
+          image: archmachina/elasticwait:0.1.3
+          env:
+            - name: CERT_VERIFY
+              value: "0"
+            - name: TIME_WAIT
+              value: "30"
+            - name: MAX_ATTEMPTS
+              value: "60"
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+        - name: filebeat-load
+          image: docker.elastic.co/beats/filebeat:8.5.3-amd64
+          command: ['/usr/share/filebeat/filebeat']
+          args:
+            - "setup"
+            - "--index-management"
+            - "-e"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+          volumeMounts:
+            - name: beatload-config
+              mountPath: /usr/share/filebeat/filebeat.yml
+              subPath: filebeat.yml
+            - name: beatload-config
+              mountPath: /usr/share/filebeat/ilm-policy.json
+              subPath: ilm-policy.json
+        - name: filebeat-load-dashboard
+          image: docker.elastic.co/beats/filebeat:8.5.3-amd64
+          command: ['/usr/share/filebeat/filebeat']
+          args:
+            - "setup"
+            - "--dashboards"
+            - "-e"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+          volumeMounts:
+            - name: beatload-config
+              mountPath: /usr/share/filebeat/filebeat.yml
+              subPath: filebeat.yml
+            - name: beatload-config
+              mountPath: /usr/share/filebeat/ilm-policy.json
+              subPath: ilm-policy.json
+        - name: metricbeat-load
+          image: docker.elastic.co/beats/metricbeat:8.5.3-amd64
+          command: ['/usr/share/metricbeat/metricbeat']
+          args:
+            - "setup"
+            - "--index-management"
+            - "-e"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+          volumeMounts:
+            - name: beatload-config
+              mountPath: /usr/share/metricbeat/metricbeat.yml
+              subPath: metricbeat.yml
+            - name: beatload-config
+              mountPath: /usr/share/metricbeat/ilm-policy.json
+              subPath: ilm-policy.json
+        - name: metricbeat-load-dashboard
+          image: docker.elastic.co/beats/metricbeat:8.5.3-amd64
+          command: ['/usr/share/metricbeat/metricbeat']
+          args:
+            - "setup"
+            - "--dashboards"
+            - "-e"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+          volumeMounts:
+            - name: beatload-config
+              mountPath: /usr/share/metricbeat/metricbeat.yml
+              subPath: metricbeat.yml
+            - name: beatload-config
+              mountPath: /usr/share/metricbeat/ilm-policy.json
+              subPath: ilm-policy.json
+        - name: auditbeat-load
+          image: docker.elastic.co/beats/auditbeat:8.5.3-amd64
+          command: ['/usr/share/auditbeat/auditbeat']
+          args:
+            - "setup"
+            - "--index-management"
+            - "-e"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+          volumeMounts:
+            - name: beatload-config
+              mountPath: /usr/share/auditbeat/auditbeat.yml
+              subPath: auditbeat.yml
+            - name: beatload-config
+              mountPath: /usr/share/auditbeat/ilm-policy.json
+              subPath: ilm-policy.json
+        - name: auditbeat-load-dashboard
+          image: docker.elastic.co/beats/auditbeat:8.5.3-amd64
+          command: ['/usr/share/auditbeat/auditbeat']
+          args:
+            - "setup"
+            - "--dashboards"
+            - "-e"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: KIBANA_HOST
+              value: "kibana-svc"
+            - name: KIBANA_PORT
+              value: "5601"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: elastic_password
+            - name: KIBANA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_username
+            - name: KIBANA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: beatload-credentials
+                  key: kibana_password
+          volumeMounts:
+            - name: beatload-config
+              mountPath: /usr/share/auditbeat/auditbeat.yml
+              subPath: auditbeat.yml
+            - name: beatload-config
+              mountPath: /usr/share/auditbeat/ilm-policy.json
+              subPath: ilm-policy.json
+      containers:
+        - name: pause
+          image: gcr.io/google_containers/pause

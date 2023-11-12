@@ -1,0 +1,98 @@
+#!/bin/bash
+
+# Global settings
+set -o pipefail
+SCRIPT_PATH=$(readlink -f "$0")
+SCRIPT_DIR=$(dirname "${SCRIPT_PATH}")
+
+# Potential semver version sources. Space separated.
+# shellcheck disable=SC2153
+VERSION_SOURCES="$GITHUB_REF"
+
+# Docker Hub information
+DOCKER_IMAGE="archmachina/helm-elasticlog"
+DOCKER_USERNAME="archmachina"
+DOCKER_HOST="docker.io"
+
+# GitHub repo information
+GITHUB_OWNER=archmachina
+GITHUB_REPO=helm-elasticlog
+
+# shellcheck disable=SC1091
+. "${SCRIPT_DIR}/exec/exec_functions"
+
+# Determine version information
+echo "Version Sources: $VERSION_SOURCES"
+VERSION=$(get_semver_match < <(echo "$VERSION_SOURCES"))
+if [ "$VERSION" != "" ]; then
+  # Extract the components of the version
+  assert semver_extract "${VERSION}"
+
+  # Make sure we have valid semver information
+  assert_msg semver_full [ "$SEMVER_FULL" != "" ]
+
+  # Version that can be used in the build process when generating an image
+  BUILD_VERSION="${SEMVER_FULL}"
+
+  # The '+' character isn't valid in a docker tag name, so replace with an
+  # underscore.
+  SEMVER_FULL=${SEMVER_FULL//+/_/}
+
+  # Define all of the tags that will apply for this image
+  TAG_VERSIONS="$TAG_VERSIONS ${SEMVER_FULL}"
+  [ "$SEMVER_PRERELEASE" == "" ] && TAG_VERSIONS="$TAG_VERSIONS ${SEMVER_MAJOR}"
+  [ "$SEMVER_PRERELEASE" == "" ] && TAG_VERSIONS="$TAG_VERSIONS ${SEMVER_MAJOR}.${SEMVER_MINOR}"
+  [ "$SEMVER_PRERELEASE" == "" ] && TAG_VERSIONS="$TAG_VERSIONS ${SEMVER_MAJOR}.${SEMVER_MINOR}.${SEMVER_PATCH}"
+else
+  # No version information. Generate a BUILD_VERSION for the docker build
+  GIT_SHA=$(assert git log -1 --format=%h)
+  BUILD_VERSION="0.1.0-${GIT_SHA}"
+fi
+
+while [ "$1" != "" ] ; do
+
+  COMMAND="$1"
+  shift
+
+  case "$COMMAND" in
+    build)
+      IMAGE=$(assert helm package source/elasticlog -d packages/ --app-version "${BUILD_VERSION}" --version "${BUILD_VERSION}")
+      echo "$IMAGE"
+      ;;
+
+    push)
+      assert_msg image_check [ "$IMAGE" != "" ]
+
+      # Log in using supplied token
+      assert helm push "packages/elasticlog-${BUILD_VERSION}" "oci://registry-1.docker.io/${DOCKER_USERNAME}"
+
+      # Push each tag
+      echo "Tag Versions: $TAG_VERSIONS"
+      for TAG in $TAG_VERSIONS ; do
+        [ "$TAG" == "" ] && continue
+
+        # Tag and push the image defined earlier
+        assert docker tag "${IMAGE}" "${DOCKER_IMAGE}:${TAG}"
+        assert docker push "${DOCKER_IMAGE}:${TAG}"
+      done
+      ;;
+
+    release)
+      # Make sure we have valid version information
+      assert_msg version [ "$VERSION" != "" ]
+      assert_msg semver_full [ "$SEMVER_FULL" != "" ]
+
+      # Remove leading refs/tags/
+      VERSION="${VERSION#refs/tags/}"
+
+      # Determine if this is a prerelease
+      GITHUB_PRERELEASE='false'
+      [ "${SEMVER_PRERELEASE}" != "" ] && GITHUB_PRERELEASE='true'
+
+      # Create a new release on GitHub
+      assert github_release -o "${GITHUB_OWNER}" -r "${GITHUB_REPO}" -t "${VERSION}" -d false \
+        -p "${GITHUB_PRERELEASE}" -n "Version ${VERSION}" -a "${GITHUB_TOKEN}" -g
+  esac
+done
+
+exit 0

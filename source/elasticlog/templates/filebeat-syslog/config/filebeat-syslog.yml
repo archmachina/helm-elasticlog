@@ -1,0 +1,108 @@
+---
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+processors:
+  - copy_fields:
+      fields:
+        - from: event.original
+          to: message
+      fail_on_error: false
+      ignore_missing: true
+  - copy_fields:
+      fields:
+        - from: message
+          to: event.original
+      fail_on_error: false
+      ignore_missing: true
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - script:
+      when:
+        has_fields: ["log.source.address"]
+      lang: javascript
+      id: source_address
+      source: |
+        function process(event) {
+          var hostData = event.Get("log.source.address").split(":")[0];
+          event.Put("host.ip", hostData);
+        }
+  - script:
+      lang: javascript
+      id: timestamp
+      source: |
+        function process(event) {
+          event.Put("@timestamp", new Date())
+        }
+
+setup.template.enabled: true
+setup.template.name: "filebeat-syslog-%{[agent.version]}"
+setup.template.pattern: "filebeat-syslog-%{[agent.version]}"
+setup.template.overwrite: false
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 1
+
+setup.ilm.enabled: true
+setup.ilm.policy_name: "filebeat-syslog"
+setup.ilm.check_exists: true
+setup.ilm.overwrite: false
+setup.ilm.policy_file: "ilm-policy.json"
+
+output.elasticsearch:
+  enabled: true
+  hosts: ["${ELASTIC_HOST}:${ELASTIC_PORT}"]
+  username: "${ELASTIC_USERNAME}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities:
+    - "/usr/share/filebeat/certs/ca.crt"
+  loadbalance: true
+  # The documentation mentions that enabling this will disable ILM, however filebeat logs
+  # show that ILM configuration is still performed. Additionally, without this, filebeat will just write
+  # to filebeat-(agent.version).
+  index: "filebeat-syslog-%{[agent.version]}"
+  protocol: https
+  ssl.enabled: true
+
+filebeat.inputs:
+  - type: syslog
+    protocol.udp:
+      host: "0.0.0.0:9000"
+    tags: ["filebeat_plain_syslog"]
+
+  - type: syslog
+    protocol.tcp:
+      host: "0.0.0.0:9000"
+    tags: ["filebeat_plain_syslog"]
+
+filebeat.modules:
+  - module: cisco
+    asa:
+      enabled: true
+      var.input: udp
+      var.syslog_host: 0.0.0.0
+      var.syslog_port: 9001
+    ftd:
+      enabled: true
+      var.input: udp
+      var.syslog_host: 0.0.0.0
+      var.syslog_port: 9003
+    ios:
+      enabled: true
+      var.input: syslog
+      var.syslog_host: 0.0.0.0
+      var.syslog_port: 9002
+      var.syslog_protocol: udp
+    nexus:
+      enabled: true
+      var.input: udp
+      var.syslog_host: 0.0.0.0
+      var.syslog_port: 9506
+  - module: f5
+    bigipapm:
+      enabled: true
+      var.input: udp
+      var.syslog_host: 0.0.0.0
+      var.syslog_port: 9504

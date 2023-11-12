@@ -1,0 +1,15 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-svc
+  labels:
+    component: kibana
+spec:
+  selector:
+    component: kibana
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 5601
+      targetPort: 5601

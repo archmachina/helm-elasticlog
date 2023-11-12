@@ -1,0 +1,54 @@
+---
+filebeat.config:
+  modules:
+    path: ${path.config}/modules.d/*.yml
+    reload.enabled: false
+
+processors:
+  - fingerprint:
+      fields:
+        - "flow.id"
+        - "netflow.exporter.address"
+        - "netflow.exporter.timestamp"
+      target_field: "@metadata._id"
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+
+setup.template.enabled: true
+setup.template.name: "filebeat-netflow-%{[agent.version]}"
+setup.template.pattern: "filebeat-netflow-%{[agent.version]}"
+setup.template.overwrite: false
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 1
+
+setup.ilm.enabled: true
+setup.ilm.policy_name: "filebeat-netflow"
+setup.ilm.check_exists: true
+setup.ilm.overwrite: false
+setup.ilm.policy_file: "ilm-policy.json"
+
+output.elasticsearch:
+  enabled: true
+  hosts: ["${ELASTIC_HOST}:${ELASTIC_PORT}"]
+  username: "${ELASTIC_USERNAME}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities:
+    - "/usr/share/filebeat/certs/ca.crt"
+  loadbalance: true
+  # The documentation mentions that enabling this will disable ILM, however filebeat logs
+  # show that ILM configuration is still performed. Additionally, without this, filebeat will just write
+  # to filebeat-(agent.version).
+  index: "filebeat-netflow-%{[agent.version]}"
+  protocol: https
+  ssl.enabled: true
+
+filebeat.inputs:
+  - type: netflow
+    max_message_size: 10KiB
+    host: "0.0.0.0:2055"
+    protocols: [v5, v9, ipfix]
+    expiration_timeout: 30m
+    queue_size: 8192
+    detect_sequence_reset: true
+    tags: ["filebeat_netflow"]

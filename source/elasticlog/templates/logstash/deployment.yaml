@@ -1,0 +1,88 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash-dp
+  labels:
+    component: logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: logstash
+  template:
+    metadata:
+      labels:
+        component: logstash
+    spec:
+      volumes:
+        - name: elastic-ca-cert
+          secret:
+            secretName: elastic-ca-cert
+        - name: logstash-pipeline-config
+          configMap:
+            name: logstash-pipeline-config
+      initContainers:
+        - name: wait
+          image: archmachina/elasticwait:0.1.3
+          env:
+            - name: CERT_VERIFY
+              value: "0"
+            - name: TIME_WAIT
+              value: "30"
+            - name: MAX_ATTEMPTS
+              value: "60"
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_password
+      containers:
+        - name: logstash
+          image: docker.elastic.co/logstash/logstash:8.5.3-amd64
+          env:
+            - name: ES_JAVA_OPTS
+              value: "-Xms1g -Xmx1g"
+            - name: ELASTIC_URI
+              value: "https://elastic-svc:9200"
+            - name: XPACK_MONITORING_ELASTICSEARCH_HOSTS
+              value: "[\"https://elastic-svc:9200\"]"
+            - name: XPACK_MONITORING_ELASTICSEARCH_SSL_CERTIFICATE_AUTHORITY
+              value: /usr/share/logstash/certs/ca.crt
+            - name: XPACK_MONITORING_ELASTICSEARCH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_username
+            - name: XPACK_MONITORING_ELASTICSEARCH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_password
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_password
+          volumeMounts:
+            - name: elastic-ca-cert
+              mountPath: /usr/share/logstash/certs/
+              readOnly: true
+            - name: logstash-pipeline-config
+              mountPath: /usr/share/logstash/pipeline
+          ports:
+            - containerPort: 5044

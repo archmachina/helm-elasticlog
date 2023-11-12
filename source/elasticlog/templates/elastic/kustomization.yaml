@@ -1,0 +1,31 @@
+---
+
+resources:
+  - service.yaml
+  - statefulset.yaml
+  - ingress.yaml
+  - deployment.yaml
+
+configMapGenerator:
+  - name: elastic-config
+    files:
+      - config.py=config/config.py
+  - name: elastic-usersetup
+    files:
+      - usersetup.sh=config/usersetup.sh
+
+secretGenerator:
+  - name: elastic-password
+    type: Opaque
+  - name: elastic-cert
+    type: kubernetes.io/tls
+  - name: elastic-ca-cert
+    type: Opaque
+  - name: elastic-credentials
+    type: Opaque
+    literals:
+      - localadmin_username=localadmin
+      - logstash_system_password=""
+      - beats_system_password=""
+      - filebeat_username=filebeat_writer
+      - logstash_username=logstash_writer

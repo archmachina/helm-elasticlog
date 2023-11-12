@@ -1,0 +1,7 @@
+---
+kind: Kustomization
+
+resources:
+  - output.yaml
+
+namespace: test

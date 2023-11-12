@@ -1,0 +1,38 @@
+---
+
+setup.template.enabled: true
+setup.template.name: "filebeat-%{[agent.version]}"
+setup.template.pattern: "filebeat-%{[agent.version]}"
+setup.template.overwrite: false
+setup.template.settings:
+  index.number_of_shards: 1
+  index.number_of_replicas: 1
+
+setup.ilm.enabled: true
+setup.ilm.policy_name: "filebeat"
+setup.ilm.check_exists: true
+setup.ilm.overwrite: false
+setup.ilm.policy_file: "ilm-policy.json"
+
+setup.kibana:
+  host: "${KIBANA_HOST}:${KIBANA_PORT}"
+  protocol: https
+  username: "${KIBANA_USERNAME}"
+  password: "${KIBANA_PASSWORD}"
+  ssl.certificate_authorities:
+    - "/usr/share/filebeat/certs/ca.crt"
+  ssl.enabled: true
+
+output.elasticsearch:
+  enabled: true
+  hosts: ["${ELASTIC_HOST}:${ELASTIC_PORT}"]
+  username: "${ELASTIC_USERNAME}"
+  password: "${ELASTIC_PASSWORD}"
+  ssl.certificate_authorities:
+    - "/usr/share/filebeat/certs/ca.crt"
+  # The documentation mentions that enabling this will disable ILM, however filebeat logs
+  # show that ILM configuration is still performed. Additionally, without this, filebeat will just write
+  # to filebeat-(agent.version).
+  index: "filebeat-%{[agent.version]}"
+  protocol: https
+  ssl.enabled: true

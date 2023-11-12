@@ -1,0 +1,115 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: filebeat-syslog-ds
+  labels:
+    component: filebeat-syslog
+spec:
+  selector:
+    matchLabels:
+      component: filebeat-syslog
+  template:
+    metadata:
+      labels:
+        component: filebeat-syslog
+    spec:
+      volumes:
+        - name: elastic-ca-cert
+          secret:
+            secretName: elastic-ca-cert
+        - name: filebeat-syslog-config
+          configMap:
+            name: filebeat-syslog-config
+      initContainers:
+        - name: wait
+          image: archmachina/elasticwait:0.1.3
+          env:
+            - name: CERT_VERIFY
+              value: "0"
+            - name: TIME_WAIT
+              value: "30"
+            - name: MAX_ATTEMPTS
+              value: "60"
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_password
+      containers:
+        - name: filebeat-syslog
+          image: docker.elastic.co/beats/filebeat:8.5.3-amd64
+          volumeMounts:
+            - name: filebeat-syslog-config
+              mountPath: /usr/share/filebeat/filebeat.yml
+              subPath: filebeat.yml
+            - name: filebeat-syslog-config
+              mountPath: /usr/share/filebeat/ilm-policy.json
+              subPath: ilm-policy.json
+            - name: elastic-ca-cert
+              mountPath: /usr/share/filebeat/certs/
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: ELASTIC_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: filebeat_username
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: filebeat_password
+          ports:
+            - name: "tcp-9000"
+              protocol: TCP
+              containerPort: 9000
+              hostPort: 9000
+            - name: "tcp-9001"
+              protocol: TCP
+              containerPort: 9001
+              hostPort: 9001
+            - name: "tcp-9002"
+              protocol: TCP
+              containerPort: 9002
+              hostPort: 9002
+            - name: "tcp-9003"
+              protocol: TCP
+              containerPort: 9003
+              hostPort: 9003
+            - name: "udp-9000"
+              protocol: UDP
+              containerPort: 9000
+              hostPort: 9000
+            - name: "udp-9001"
+              protocol: UDP
+              containerPort: 9001
+              hostPort: 9001
+            - name: "udp-9002"
+              protocol: UDP
+              containerPort: 9002
+              hostPort: 9002
+            - name: "udp-9003"
+              protocol: UDP
+              containerPort: 9003
+              hostPort: 9003
+            - name: "udp-9504"
+              protocol: UDP
+              containerPort: 9504
+              hostPort: 9504
+            - name: "udp-9506"
+              protocol: UDP
+              containerPort: 9506
+              hostPort: 9506

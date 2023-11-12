@@ -1,0 +1,89 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elastic-config-dp
+  labels:
+    component: elastic-config
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: elastic-config
+  template:
+    metadata:
+      labels:
+        component: elastic-config
+    spec:
+      volumes:
+        - name: elastic-config
+          configMap:
+            name: elastic-config
+      initContainers:
+        - name: config
+          image: archmachina/pyapiutil
+          command: ['python3']
+          args:
+            - "/config.py"
+          env:
+            - name: ELASTIC_HOST
+              value: "elastic-svc"
+            - name: ELASTIC_PORT
+              value: "9200"
+            - name: CONNECTION_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_username
+            - name: CONNECTION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: localadmin_password
+            - name: ELASTIC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: elastic_password
+            - name: LOGSTASH_SYSTEM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_system_password
+            - name: BEATS_SYSTEM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: beats_system_password
+            - name: KIBANA_SYSTEM_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: kibana_system_password
+            - name: LOGSTASH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_username
+            - name: LOGSTASH_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: logstash_password
+            - name: FILEBEAT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: filebeat_username
+            - name: FILEBEAT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: elastic-credentials
+                  key: filebeat_password
+          volumeMounts:
+            - name: elastic-config
+              mountPath: /config.py
+              subPath: config.py
+      containers:
+        - name: pause
+          image: gcr.io/google_containers/pause

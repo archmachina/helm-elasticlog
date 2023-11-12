@@ -1,0 +1,17 @@
+---
+
+resources:
+  - ../elasticlog/resources
+  - ./storageclass.yaml
+
+configMapGenerator:
+  - name: elasticlog-config
+    behavior: merge
+    literals:
+      - elastic_storage_class=local-elasticlog-sc
+      # - elastic_replicas=3
+      - elastic_java_opts=-Xms3g -Xmx3g
+      - logstash_java_opts=-Xms2g -Xmx2g
+
+components:
+  - ../elasticlog/components/beatload_custom_ca
